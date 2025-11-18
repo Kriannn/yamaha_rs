@@ -6,7 +6,9 @@ description = "Yamaha Extended Control API in Rust"
 keywords = ["yamaha", "musiccast"]
 readme = "README.md"
 license = "GPL-3.0"
-homepage = ""
-respository = ""
+homepage = "https://github.com/Kriannn/yamaha_rs"
+respository = "https://github.com/Kriannn/yamaha_rs"
 
 [dependencies]
+serde = { version = "1.0.228", default-features = false, features = ["derive"] }
+serde_json = {version = "1.0.145", default-features = false, features = ["alloc"] }
