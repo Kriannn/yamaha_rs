@@ -1,0 +1,12 @@
+[package]
+name = "yamaha_rs"
+version = "0.1.0"
+edition = "2024"
+description = "Yamaha Extended Control API in Rust"
+keywords = ["yamaha", "musiccast"]
+readme = "README.md"
+license = "GPL-3.0"
+homepage = ""
+respository = ""
+
+[dependencies]
