@@ -7,7 +7,7 @@ keywords = ["yamaha", "musiccast"]
 readme = "README.md"
 license = "GPL-3.0"
 homepage = "https://github.com/Kriannn/yamaha_rs"
-respository = "https://github.com/Kriannn/yamaha_rs"
+repository = "https://github.com/Kriannn/yamaha_rs"
 
 [dependencies]
 serde = { version = "1.0.228", default-features = false, features = ["derive"] }
