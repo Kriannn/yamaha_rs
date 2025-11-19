@@ -10,7 +10,9 @@ use serde_json::Value;
 
 pub use crate::discover::discover_yamaha_devices;
 
-pub use crate::structs::{DeviceInfo, ResponseCode, SignalInfo, ZoneProgramList, ZoneStatus, YamahaDevice};
+pub use crate::structs::{
+    DeviceInfo, ResponseCode, SignalInfo, YamahaDevice, ZoneProgramList, ZoneStatus,
+};
 
 fn yamaha_get(host: &str, path: &str) -> Result<String, Box<dyn std::error::Error>> {
     let mut stream = TcpStream::connect((host, 80))?;
