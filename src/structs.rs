@@ -1,7 +1,8 @@
-use std::net::IpAddr;
+use std::{fmt, net::IpAddr};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Deserialize, Serialize, Debug)]
 pub enum ResponseCode {
     Successful = 0,
     Initializing = 1,
@@ -29,6 +30,40 @@ pub enum ResponseCode {
     SimultaneousLoginsLimit = 115,
     LinkingInProgress = 200,
     UnlinkingInProgress = 201,
+}
+
+impl fmt::Display for ResponseCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = match self {
+            ResponseCode::Successful => "Successful",
+            ResponseCode::Initializing => "Initializing",
+            ResponseCode::InternalError => "Internal Error",
+            ResponseCode::InvalidRequest => "Invalid Request",
+            ResponseCode::InvalidParameter => "Invalid Parameter",
+            ResponseCode::Guarded => "Guarded (Operation not allowed)",
+            ResponseCode::TimeOut => "Request Timed Out",
+            ResponseCode::FirmwareUpdating => "Firmware Updating",
+            ResponseCode::AccessError => "Access Error",
+            ResponseCode::OtherErrors => "Other Error",
+            ResponseCode::WrongUserName => "Wrong Username",
+            ResponseCode::WrongPassword => "Wrong Password",
+            ResponseCode::AccountExpired => "Account Expired",
+            ResponseCode::AccountDisconnected => "Account Disconnected",
+            ResponseCode::AccountLimitReached => "Account Limit Reached",
+            ResponseCode::ServerMaintenance => "Server Under Maintenance",
+            ResponseCode::InvalidAccount => "Invalid Account",
+            ResponseCode::LicenseError => "License Error",
+            ResponseCode::ReadOnlyMode => "Read-Only Mode",
+            ResponseCode::MaxStations => "Maximum Stations Reached",
+            ResponseCode::AccessDenied => "Access Denied",
+            ResponseCode::NeedSpecifyPlaylist => "Playlist Must Be Specified",
+            ResponseCode::NeedCreatePlaylist => "Playlist Must Be Created",
+            ResponseCode::SimultaneousLoginsLimit => "Simultaneous Logins Limit Reached",
+            ResponseCode::LinkingInProgress => "Linking In Progress",
+            ResponseCode::UnlinkingInProgress => "Unlinking In Progress",
+        };
+        write!(f, "{}", description)
+    }
 }
 
 impl From<u32> for ResponseCode {

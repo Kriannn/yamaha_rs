@@ -58,8 +58,8 @@ pub fn get_device_info(ip: &str) -> Result<DeviceInfo, ResponseCode> {
     }
 }
 
-pub fn get_zone_status(ip: &str) -> Result<ZoneStatus, ResponseCode> {
-    let body = match yamaha_get(ip, "/v1/main/getStatus") {
+pub fn get_zone_status(ip: &str, zone: &str) -> Result<ZoneStatus, ResponseCode> {
+    let body = match yamaha_get(ip, &format!("/v1/{}/getStatus", zone)) {
         Ok(b) => b,
         Err(_) => return Err(ResponseCode::InternalError),
     };
@@ -78,8 +78,8 @@ pub fn get_zone_status(ip: &str) -> Result<ZoneStatus, ResponseCode> {
     }
 }
 
-pub fn get_zone_program_list(ip: &str) -> Result<ZoneProgramList, ResponseCode> {
-    let body = match yamaha_get(ip, "/v1/main/getSoundProgramList") {
+pub fn get_zone_program_list(ip: &str, zone: &str) -> Result<ZoneProgramList, ResponseCode> {
+    let body = match yamaha_get(ip, &format!("/v1/{}/getSoundProgramList", zone)) {
         Ok(b) => b,
         Err(_) => return Err(ResponseCode::InternalError),
     };
@@ -98,8 +98,8 @@ pub fn get_zone_program_list(ip: &str) -> Result<ZoneProgramList, ResponseCode> 
     }
 }
 
-pub fn get_signal_info(ip: &str) -> Result<SignalInfo, ResponseCode> {
-    let body = match yamaha_get(ip, "/v1/main/getSignalInfo") {
+pub fn get_signal_info(ip: &str, zone: &str) -> Result<SignalInfo, ResponseCode> {
+    let body = match yamaha_get(ip, &format!("/v1/{}/getSignalInfo", zone)) {
         Ok(b) => b,
         Err(_) => return Err(ResponseCode::InternalError),
     };
