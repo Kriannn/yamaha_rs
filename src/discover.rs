@@ -10,6 +10,7 @@ pub fn discover_yamaha_devices() -> Vec<YamahaDevice> {
     socket
         .set_read_timeout(Some(Duration::from_secs(3)))
         .unwrap();
+    socket.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
     socket.send_to("M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 2\r\nST: ssdp:all\r\n\r\n".as_bytes(), "239.255.255.250:1900".to_socket_addrs().unwrap().next().unwrap()).unwrap();
     
     let start = Instant::now();
@@ -62,6 +63,9 @@ fn extract_device_info(location: &str) -> Option<(String, String)> {
     let addr = extract_host_port(location)?;
     let mut stream =
         TcpStream::connect_timeout(&addr.parse().ok()?, Duration::from_millis(800)).ok()?;
+
+        stream.set_write_timeout(Some(Duration::from_secs(1))).unwrap();
+        stream.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
 
     let path = extract_path(location).unwrap_or("/".to_string());
     let req = format!(
