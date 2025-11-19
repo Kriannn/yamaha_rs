@@ -93,23 +93,3 @@ mod tests {
         assert_eq!(extract_model_name(resp), Some("RX-V6A".to_string()));
     }
 }
-
-// If you want to run it as a simple demo
-#[cfg(feature = "demo")]
-fn main() -> std::io::Result<()> {
-    println!("Discovering Yamaha devices...");
-    let devices = discover_yamaha_devices(3)?;
-    if devices.is_empty() {
-        println!("No Yamaha Extended Control devices found.");
-    } else {
-        for dev in &devices {
-            println!(
-                "Found: {} at {}:{}",
-                dev.model_name.as_deref().unwrap_or("Unknown model"),
-                dev.ip,
-                dev.port
-            );
-        }
-    }
-    Ok(())
-}
