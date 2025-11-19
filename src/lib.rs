@@ -3,7 +3,8 @@ mod structs;
 
 use std::{
     io::{Read, Write},
-    net::{TcpStream, ToSocketAddrs}, time::Duration,
+    net::{TcpStream, ToSocketAddrs},
+    time::Duration,
 };
 
 use serde_json::Value;
@@ -15,7 +16,8 @@ pub use crate::structs::{
 };
 
 fn yamaha_get(host: &str, path: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let addr = (host, 80).to_socket_addrs()?
+    let addr = (host, 80)
+        .to_socket_addrs()?
         .next()
         .ok_or("Failed to resolve host")?;
 
@@ -143,6 +145,24 @@ pub fn toggle_zone_power(ip: &str, zone: &str) -> Result<(), ResponseCode> {
     }
 }
 
+pub fn set_sleep(ip: &str, zone: &str, time: u32) -> Result<(), ResponseCode> {
+    let body = match yamaha_get(ip, &format!("/v1/{}/setSleep?sleep={}", zone, time)) {
+        Ok(b) => b,
+        Err(_) => return Err(ResponseCode::InternalError),
+    };
+
+    let value: Value = serde_json::from_str(&body).map_err(|_| ResponseCode::InternalError)?;
+    let code = value
+        .get("response_code")
+        .and_then(|v| v.as_u64())
+        .ok_or(ResponseCode::InternalError)? as u32;
+    if code == 0 {
+        Ok(())
+    } else {
+        Err(ResponseCode::from(code))
+    }
+}
+
 pub fn set_volume_up(ip: &str, zone: &str) -> Result<(), ResponseCode> {
     let body = match yamaha_get(ip, &format!("/v1/{}/setVolume?volume=up", zone)) {
         Ok(b) => b,
@@ -179,11 +199,12 @@ pub fn set_volume_down(ip: &str, zone: &str) -> Result<(), ResponseCode> {
     }
 }
 
-pub fn set_mute(ip: &str, mute: bool) -> Result<(), ResponseCode> {
+pub fn set_mute(ip: &str, zone: &str, mute: bool) -> Result<(), ResponseCode> {
     let body = match yamaha_get(
         ip,
         &format!(
-            "/v1/main/setMute?enable={}",
+            "/v1/{}/setMute?enable={}",
+            zone,
             if mute { "true" } else { "false" }
         ),
     ) {
@@ -203,11 +224,76 @@ pub fn set_mute(ip: &str, mute: bool) -> Result<(), ResponseCode> {
     }
 }
 
-pub fn set_pure_direct(ip: &str, direct: bool) -> Result<(), ResponseCode> {
+pub fn set_input(ip: &str, zone: &str, input: &str) -> Result<(), ResponseCode> {
+    let body = match yamaha_get(ip, &format!("/v1/{}/setInput?input={}", zone, input)) {
+        Ok(b) => b,
+        Err(_) => return Err(ResponseCode::InternalError),
+    };
+
+    let value: Value = serde_json::from_str(&body).map_err(|_| ResponseCode::InternalError)?;
+    let code = value
+        .get("response_code")
+        .and_then(|v| v.as_u64())
+        .ok_or(ResponseCode::InternalError)? as u32;
+    if code == 0 {
+        Ok(())
+    } else {
+        Err(ResponseCode::from(code))
+    }
+}
+
+pub fn set_sound_program(ip: &str, zone: &str, program: &str) -> Result<(), ResponseCode> {
+    let body = match yamaha_get(
+        ip,
+        &format!("/v1/{}/setSoundProgram?program={}", zone, program),
+    ) {
+        Ok(b) => b,
+        Err(_) => return Err(ResponseCode::InternalError),
+    };
+
+    let value: Value = serde_json::from_str(&body).map_err(|_| ResponseCode::InternalError)?;
+    let code = value
+        .get("response_code")
+        .and_then(|v| v.as_u64())
+        .ok_or(ResponseCode::InternalError)? as u32;
+    if code == 0 {
+        Ok(())
+    } else {
+        Err(ResponseCode::from(code))
+    }
+}
+
+pub fn set_3d_surround(ip: &str, zone: &str, enable: bool) -> Result<(), ResponseCode> {
     let body = match yamaha_get(
         ip,
         &format!(
-            "/v1/main/setPureDirect?enable={}",
+            "/v1/{}/set3dSurround?enable={}",
+            zone,
+            if enable { "true" } else { "false" }
+        ),
+    ) {
+        Ok(b) => b,
+        Err(_) => return Err(ResponseCode::InternalError),
+    };
+
+    let value: Value = serde_json::from_str(&body).map_err(|_| ResponseCode::InternalError)?;
+    let code = value
+        .get("response_code")
+        .and_then(|v| v.as_u64())
+        .ok_or(ResponseCode::InternalError)? as u32;
+    if code == 0 {
+        Ok(())
+    } else {
+        Err(ResponseCode::from(code))
+    }
+}
+
+pub fn set_direct(ip: &str, zone: &str, direct: bool) -> Result<(), ResponseCode> {
+    let body = match yamaha_get(
+        ip,
+        &format!(
+            "/v1/{}/setDirect?enable={}",
+            zone,
             if direct { "true" } else { "false" }
         ),
     ) {
@@ -227,11 +313,37 @@ pub fn set_pure_direct(ip: &str, direct: bool) -> Result<(), ResponseCode> {
     }
 }
 
-pub fn set_enhancer(ip: &str, enhancer: bool) -> Result<(), ResponseCode> {
+pub fn set_pure_direct(ip: &str, zone: &str, direct: bool) -> Result<(), ResponseCode> {
     let body = match yamaha_get(
         ip,
         &format!(
-            "/v1/main/setEnhancer?enable={}",
+            "/v1/{}/setPureDirect?enable={}",
+            zone,
+            if direct { "true" } else { "false" }
+        ),
+    ) {
+        Ok(b) => b,
+        Err(_) => return Err(ResponseCode::InternalError),
+    };
+
+    let value: Value = serde_json::from_str(&body).map_err(|_| ResponseCode::InternalError)?;
+    let code = value
+        .get("response_code")
+        .and_then(|v| v.as_u64())
+        .ok_or(ResponseCode::InternalError)? as u32;
+    if code == 0 {
+        Ok(())
+    } else {
+        Err(ResponseCode::from(code))
+    }
+}
+
+pub fn set_enhancer(ip: &str, zone: &str, enhancer: bool) -> Result<(), ResponseCode> {
+    let body = match yamaha_get(
+        ip,
+        &format!(
+            "/v1/{}/setEnhancer?enable={}",
+            zone,
             if enhancer { "true" } else { "false" }
         ),
     ) {
@@ -251,14 +363,8 @@ pub fn set_enhancer(ip: &str, enhancer: bool) -> Result<(), ResponseCode> {
     }
 }
 
-pub fn set_extra_bass(ip: &str, bass: bool) -> Result<(), ResponseCode> {
-    let body = match yamaha_get(
-        ip,
-        &format!(
-            "/v1/main/setExtraBass?enable={}",
-            if bass { "true" } else { "false" }
-        ),
-    ) {
+pub fn set_balance(ip: &str, zone: &str, balance: i32) -> Result<(), ResponseCode> {
+    let body = match yamaha_get(ip, &format!("/v1/{}/setBalance?value={}", zone, balance)) {
         Ok(b) => b,
         Err(_) => return Err(ResponseCode::InternalError),
     };
@@ -275,8 +381,15 @@ pub fn set_extra_bass(ip: &str, bass: bool) -> Result<(), ResponseCode> {
     }
 }
 
-pub fn set_sound_program(ip: &str, program: &str) -> Result<(), ResponseCode> {
-    let body = match yamaha_get(ip, &format!("/v1/main/setSoundProgram?program={}", program)) {
+pub fn set_extra_bass(ip: &str, zone: &str, bass: bool) -> Result<(), ResponseCode> {
+    let body = match yamaha_get(
+        ip,
+        &format!(
+            "/v1/{}/setExtraBass?enable={}",
+            zone,
+            if bass { "true" } else { "false" }
+        ),
+    ) {
         Ok(b) => b,
         Err(_) => return Err(ResponseCode::InternalError),
     };
