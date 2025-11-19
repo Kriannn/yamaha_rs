@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub enum ResponseCode {
     Successful = 0,
@@ -65,12 +65,13 @@ impl From<u32> for ResponseCode {
     }
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct YamahaDevice {
     pub ip: IpAddr,
     pub name: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct DeviceInfo {
     pub model_name: String,
     pub destination: String,
@@ -89,12 +90,12 @@ pub struct DeviceInfo {
     pub analytics_info: AnalyticsInfo,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct AnalyticsInfo {
     pub uuid: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct ZoneStatus {
     pub power: String,
     pub sleep: u32,
@@ -124,31 +125,31 @@ pub struct ZoneStatus {
     pub adaptive_dsp_level: bool,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct ToneControl {
     pub mode: String,
     pub bass: u32,
     pub treble: u32,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct ActualVolume {
     pub mode: String,
     pub value: f32,
     pub unit: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct ZoneProgramList {
     pub sound_program_list: Vec<String>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct SignalInfo {
     pub audio: AudioSignal,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct AudioSignal {
     pub error: u32,
     pub format: String,
