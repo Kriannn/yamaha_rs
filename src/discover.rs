@@ -1,95 +1,92 @@
-use std::net::{UdpSocket, SocketAddr};
+use std::io::{Read, Write};
+use std::net::{TcpStream, ToSocketAddrs, UdpSocket};
 use std::time::Duration;
 
-#[derive(Debug, Clone)]
-pub struct YamahaDevice {
-    pub ip: String,
-    pub port: u16,
-    pub model_name: Option<String>,
-    pub raw_response: String,
-}
+use crate::structs::YamahaDevice;
 
-/// Discovers Yamaha amplifiers/receivers supporting the Extended Control API on the local network.
-/// Returns a list of discovered devices.
-pub fn discover_yamaha_devices(timeout_secs: u64) -> std::io::Result<Vec<YamahaDevice>> {
-    let socket = UdpSocket::bind("0.0.0.0:0")?;
-    socket.set_read_timeout(Some(Duration::from_secs(timeout_secs)))?;
-    socket.set_broadcast(true)?;
+pub fn discover_yamaha_devices() -> Vec<YamahaDevice> {
+    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
+    socket
+        .set_read_timeout(Some(Duration::from_secs(3)))
+        .unwrap();
+    socket.send_to("M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: \"ssdp:discover\"\r\nMX: 2\r\nST: ssdp:all\r\n\r\n".as_bytes(), "239.255.255.250:1900".to_socket_addrs().unwrap().next().unwrap()).unwrap();
+    let mut buf = [0u8; 4096];
+    let mut result = Vec::new();
 
-    let discovery_msg = b"YamahaExtendedControlV1\r\n";
-    let broadcast_addr: SocketAddr = "255.255.255.255:49153".parse().unwrap();
+    if let Ok((n, src)) = socket.recv_from(&mut buf) {
+        let resp = String::from_utf8_lossy(&buf[..n]);
 
-    // Send discovery packet
-    socket.send_to(discovery_msg, broadcast_addr)?;
-
-    let mut devices = Vec::new();
-    let mut buf = [0; 2048];
-
-    loop {
-        match socket.recv_from(&mut buf) {
-            Ok((size, src)) => {
-                let raw = String::from_utf8_lossy(&buf[..size]).to_string();
-                let model_name = extract_model_name(&raw);
-                devices.push(YamahaDevice {
-                    ip: src.ip().to_string(),
-                    port: src.port(),
-                    model_name,
-                    raw_response: raw,
-                });
-            }
-            Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
-                break;
-            }
-            Err(e) => {
-                // On WouldBlock or other errors, break to avoid hangs
-                break;
-            }
+        if let Some(loc) = extract_header(&resp, "LOCATION")
+            && let Some((friendly, manu)) = extract_device_info(&loc)
+            && manu == "Yamaha Corporation"
+        {
+            result.push(YamahaDevice {
+                ip: src.ip(),
+                name: friendly,
+            });
         }
     }
 
-    // Deduplicate by IP (in case of multiple responses)
-    let mut seen = std::collections::HashSet::new();
-    devices.retain(|d| seen.insert(d.ip.clone()));
-
-    Ok(devices)
+    result
 }
 
-// Simple heuristic to extract model_name from Yamaha JSON-like response
-fn extract_model_name(response: &str) -> Option<String> {
-    // Yamaha responses are JSON-like but may have extra spaces or formatting quirks.
-    // We do a basic substring search for reliability without a full JSON parser.
-    const MODEL_KEY: &str = "\"model_name\"";
-    if let Some(pos) = response.find(MODEL_KEY) {
-        let rest = &response[pos + MODEL_KEY.len()..];
-        if let Some(colon_pos) = rest.find(':') {
-            let after_colon = &rest[colon_pos + 1..];
-            // Trim whitespace and quotes
-            let trimmed = after_colon.trim_start_matches(|c: char| c.is_whitespace() || c == '"');
-            if let Some(end_quote) = trimmed.find('"') {
-                let model = &trimmed[..end_quote];
-                if !model.is_empty() {
-                    return Some(model.to_string());
-                }
-            }
+fn extract_header(resp: &str, header: &str) -> Option<String> {
+    let h = header.to_ascii_lowercase();
+    for line in resp.lines() {
+        let l = line.trim();
+        if l.to_ascii_lowercase().starts_with(&h)
+            && let Some(v) = l.split_once(':').map(|x| x.1)
+        {
+            return Some(v.trim().to_string());
         }
     }
     None
 }
 
-// Example usage
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn extract_device_info(location: &str) -> Option<(String, String)> {
+    let addr = extract_host_port(location)?;
+    let mut stream =
+        TcpStream::connect_timeout(&addr.parse().ok()?, Duration::from_millis(800)).ok()?;
 
-    #[test]
-    fn test_extract_model() {
-        let resp = r#"{"response_code":0,"model_name":"RX-A2A"}"#;
-        assert_eq!(extract_model_name(resp), Some("RX-A2A".to_string()));
-    }
+    let path = extract_path(location).unwrap_or("/".to_string());
+    let req = format!(
+        "GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
+        path, addr
+    );
+    stream.write_all(req.as_bytes()).ok()?;
 
-    #[test]
-    fn test_extract_model_with_spaces() {
-        let resp = r#"{ "model_name" : "RX-V6A" }"#;
-        assert_eq!(extract_model_name(resp), Some("RX-V6A".to_string()));
-    }
+    let mut buf = Vec::new();
+    stream.read_to_end(&mut buf).ok()?;
+    let xml = String::from_utf8_lossy(&buf);
+
+    let friendly = extract_xml(&xml, "friendlyName")?;
+    let manu = extract_xml(&xml, "manufacturer")?;
+
+    Some((friendly, manu))
+}
+
+fn extract_xml(xml: &str, tag: &str) -> Option<String> {
+    let open = format!("<{}>", tag);
+    let close = format!("</{}>", tag);
+
+    let start = xml.find(&open)? + open.len();
+    let end = xml[start..].find(&close)? + start;
+
+    Some(xml[start..end].trim().to_string())
+}
+
+fn extract_host_port(url: &str) -> Option<String> {
+    let no_proto = url.split("://").nth(1)?;
+    Some(no_proto.split('/').next()?.to_string())
+}
+
+fn extract_path(url: &str) -> Option<String> {
+    let no_proto = url.split("://").nth(1)?;
+    Some(
+        no_proto
+            .split_once('/')
+            .map(|x| x.1)
+            .map(|s| format!("/{}", s))
+            .unwrap_or("/".to_string()),
+    )
 }

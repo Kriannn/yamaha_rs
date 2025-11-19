@@ -1,5 +1,5 @@
-mod structs;
 mod discover;
+mod structs;
 
 use std::{
     io::{Read, Write},
@@ -10,7 +10,7 @@ use serde_json::Value;
 
 pub use crate::discover::discover_yamaha_devices;
 
-pub use crate::structs::{DeviceInfo, ResponseCode, SignalInfo, ZoneProgramList, ZoneStatus};
+pub use crate::structs::{DeviceInfo, ResponseCode, SignalInfo, ZoneProgramList, ZoneStatus, YamahaDevice};
 
 fn yamaha_get(host: &str, path: &str) -> Result<String, Box<dyn std::error::Error>> {
     let mut stream = TcpStream::connect((host, 80))?;

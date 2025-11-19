@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use serde::Deserialize;
 
 pub enum ResponseCode {
@@ -61,6 +63,11 @@ impl From<u32> for ResponseCode {
             _ => ResponseCode::OtherErrors,
         }
     }
+}
+
+pub struct YamahaDevice {
+    pub ip: IpAddr,
+    pub name: String,
 }
 
 #[derive(Deserialize, Default)]
