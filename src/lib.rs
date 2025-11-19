@@ -3,7 +3,7 @@ mod structs;
 
 use std::{
     io::{Read, Write},
-    net::TcpStream,
+    net::TcpStream, time::Duration,
 };
 
 use serde_json::Value;
@@ -16,6 +16,9 @@ pub use crate::structs::{
 
 fn yamaha_get(host: &str, path: &str) -> Result<String, Box<dyn std::error::Error>> {
     let mut stream = TcpStream::connect((host, 80))?;
+
+    stream.set_read_timeout(Some(Duration::from_secs(5)))?;
+    stream.set_write_timeout(Some(Duration::from_secs(5)))?;
 
     stream.write_all(
         format!(
