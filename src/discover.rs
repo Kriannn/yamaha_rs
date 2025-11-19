@@ -17,12 +17,12 @@ pub fn discover_yamaha_devices() -> Vec<YamahaDevice> {
     let mut buf = [0u8; 4096];
 
     let mut seen = HashSet::new();
-    let mut result = Vec::new();
+    let mut candidates = Vec::new();
 
     while start.elapsed() < Duration::from_secs(3) {
         if let Ok((n, src)) = socket.recv_from(&mut buf) {
             let ip = src.ip();
-
+            
             if seen.contains(&ip) {
                 continue;
             }
@@ -30,15 +30,20 @@ pub fn discover_yamaha_devices() -> Vec<YamahaDevice> {
             let resp = String::from_utf8_lossy(&buf[..n]);
 
             if let Some(loc) = extract_header(&resp, "LOCATION") {
-                if let Some((friendly, manu)) = extract_device_info(&loc) {
-                    if manu == "Yamaha Corporation" {
-                        seen.insert(ip.clone());
-                        result.push(YamahaDevice {
-                            ip,
-                            name: friendly,
-                        });
-                    }
-                }
+                seen.insert(ip);
+                candidates.push((ip, loc));
+            }
+        }
+    }
+
+    let mut result = Vec::new();
+    for (ip, loc) in candidates {
+        if let Some((friendly, manu)) = extract_device_info(&loc) {
+            if manu == "Yamaha Corporation" {
+                result.push(YamahaDevice {
+                    ip,
+                    name: friendly,
+                });
             }
         }
     }
