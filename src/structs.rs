@@ -189,4 +189,6 @@ pub struct AudioSignal {
     pub error: u32,
     pub format: String,
     pub fs: String,
+    pub bitrate: u32,
+    pub bit: String
 }
