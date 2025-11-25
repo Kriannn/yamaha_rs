@@ -364,7 +364,7 @@ pub struct Ccs {
 }
 
 #[derive(Deserialize, Serialize, Default, Debug)]
-pub struct NetUsbGetPlayInfoResponse {
+pub struct NetUsbPlayInfo {
     pub input: String,
     pub play_queue_type: Option<String>,
     pub playback: String,
