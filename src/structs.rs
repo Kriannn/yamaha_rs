@@ -362,3 +362,34 @@ pub struct McRole {
 pub struct Ccs {
     pub supported: bool,
 }
+
+#[derive(Deserialize, Serialize, Default, Debug)]
+pub struct NetUsbGetPlayInfoResponse {
+    pub input: String,
+    pub play_queue_type: Option<String>,
+    pub playback: String,
+    pub repeat: String,
+    pub shuffle: String,
+
+    #[serde(default)]
+    pub repeat_available: Option<Vec<String>>,
+    #[serde(default)]
+    pub shuffle_available: Option<Vec<String>>,
+
+    pub play_time: i32,
+    pub total_time: i32,
+
+    pub artist: String,
+    pub album: String,
+    pub track: String,
+
+    pub albumart_url: String,
+    pub albumart_id: i32,
+
+    pub usb_devicetype: String,
+
+    #[serde(default)]
+    pub auto_stopped: Option<bool>,
+
+    pub attribute: u32,
+}

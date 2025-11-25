@@ -423,3 +423,25 @@ pub fn get_features(ip: &str) -> Result<DeviceFeatures, ResponseCode> {
         Err(ResponseCode::from(code))
     }
 }
+
+pub fn net_usb_get_play_info(ip: &str) -> Result<NetUsbGetPlayInfoResponse, ResponseCode> {
+    let body = match yamaha_get(ip, "/v1/netusb/getPlayInfo") {
+        Ok(b) => b,
+        Err(_) => return Err(ResponseCode::InternalError),
+    };
+
+    println!("{}", body);
+
+    let value: Value = serde_json::from_str(&body).map_err(|_| ResponseCode::InternalError)?;
+    let code = value
+        .get("response_code")
+        .and_then(|v| v.as_u64())
+        .ok_or(ResponseCode::InternalError)? as u32;
+    if code == 0 {
+        let info: NetUsbGetPlayInfoResponse =
+            serde_json::from_value(value).map_err(|_| ResponseCode::InternalError)?;
+        Ok(info)
+    } else {
+        Err(ResponseCode::from(code))
+    }
+}
