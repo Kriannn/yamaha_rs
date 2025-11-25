@@ -11,10 +11,7 @@ use serde_json::Value;
 
 pub use crate::discover::discover_yamaha_devices;
 
-use crate::structs::DeviceFeatures;
-pub use crate::structs::{
-    DeviceInfo, ResponseCode, SignalInfo, YamahaDevice, ZoneProgramList, ZoneStatus,
-};
+pub use crate::structs::*;
 
 fn yamaha_get(host: &str, path: &str) -> Result<String, Box<dyn std::error::Error>> {
     let addr = (host, 80)

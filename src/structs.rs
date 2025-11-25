@@ -190,7 +190,7 @@ pub struct AudioSignal {
     pub format: String,
     pub fs: String,
     pub bitrate: u32,
-    pub bit: String
+    pub bit: String,
 }
 
 #[derive(Deserialize, Serialize, Default, Debug)]
