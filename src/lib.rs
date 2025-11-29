@@ -5,7 +5,6 @@ pub mod enums;
 
 use crate::enums::*;
 use serde::de::DeserializeOwned;
-use serde_json::Value;
 use std::{
     io::{Read, Write},
     net::{TcpStream, ToSocketAddrs},
@@ -15,28 +14,45 @@ use std::{
 pub use crate::discover::discover_yamaha_devices;
 use crate::error::{Error, InternalError};
 pub use crate::structs::*;
+use serde::Serialize;
 
-/// Sends a GET request to the Yamaha device at the given IP address and path.
-fn yamaha_get(host: &str, path: &str) -> Result<String, InternalError> {
-    let addr = (host, 80).to_socket_addrs()?.next().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::AddrNotAvailable,
-            "Failed to resolve host",
-        )
-    })?;
+enum Method {
+    Get,
+    Post,
+}
+
+fn send_request(host: &str, path: &str, method: Method, body_json: Option<String>) -> Result<String, InternalError> {
+    let addr = (host, 80)
+        .to_socket_addrs()?
+        .next()
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::AddrNotAvailable, "Failed to resolve host"))?;
 
     let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(5))?;
-
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     stream.set_write_timeout(Some(Duration::from_secs(5)))?;
 
-    stream.write_all(
-        format!(
-            "GET /YamahaExtendedControl{} HTTP/1.1\r\nConnection: close\r\n\r\n",
-            path
-        )
-        .as_bytes(),
-    )?;
+    let method_str = match method {
+        Method::Get => "GET",
+        Method::Post => "POST",
+    };
+
+    let mut request = format!(
+        "{} /YamahaExtendedControl{} HTTP/1.1\r\n\
+         Host: {}\r\n\
+         Connection: close\r\n",
+        method_str, path, host
+    );
+
+    if let Some(body) = body_json {
+        request.push_str("Content-Type: application/json\r\n");
+        request.push_str(&format!("Content-Length: {}\r\n", body.len()));
+        request.push_str("\r\n"); // End of headers
+        request.push_str(&body);
+    } else {
+        request.push_str("\r\n"); // End of headers
+    }
+
+    stream.write_all(request.as_bytes())?;
 
     let mut buffer = Vec::new();
     stream.read_to_end(&mut buffer)?;
@@ -50,26 +66,28 @@ fn yamaha_get(host: &str, path: &str) -> Result<String, InternalError> {
     }
 }
 
-/// Generic function to handle parsing JSON and checking response codes
-fn execute_request<T: DeserializeOwned>(ip: &str, path: &str) -> Result<T, Error> {
-    let body = yamaha_get(ip, path)?;
-    let value: Value = serde_json::from_str(&body)?;
+fn execute_get<T: DeserializeOwned>(ip: &str, path: &str) -> Result<T, Error> {
+    let body = send_request(ip, path, Method::Get, None)?;
+    parse_response(&body)
+}
 
-    let code = value
-        .get("response_code")
+fn execute_post<T: DeserializeOwned, B: Serialize>(ip: &str, path: &str, body_data: &B) -> Result<T, Error> {
+    let json_str = serde_json::to_string(body_data)?;
+    let body = send_request(ip, path, Method::Post, Some(json_str))?;
+    parse_response(&body)
+}
+
+fn parse_response<T: DeserializeOwned>(body: &str) -> Result<T, Error> {
+    let value: serde_json::Value = serde_json::from_str(body)?;
+
+    let code = value.get("response_code")
         .and_then(|v| v.as_u64())
-        .ok_or_else(|| {
-            InternalError::DeserializationError(serde::de::Error::custom("Missing response_code field in json response"))
-        })? as u32;
+        .ok_or_else(|| InternalError::DeserializationError(serde::de::Error::custom("Missing response_code")))? as u32;
 
     if code == 0 {
-        // If T is (), we don't need to try to deserialize the rest of the body
         if std::any::type_name::<T>() == "()" {
-            // Unsafe hack to allow returning unit type from this generic without Clone
-            // (serde_json::from_value(Null) returns () successfully)
-            return Ok(serde_json::from_value(Value::Null).unwrap());
+            return Ok(serde_json::from_value(serde_json::Value::Null).unwrap());
         }
-
         let data: T = serde_json::from_value(value)?;
         Ok(data)
     } else {
@@ -82,15 +100,27 @@ fn execute_request<T: DeserializeOwned>(ip: &str, path: &str) -> Result<T, Error
 /// 1. Get Data:   yamaha_req!(ip, "/path", ReturnType)
 /// 2. Simple Cmd: yamaha_req!(ip, "/path")
 macro_rules! yamaha_req {
-    // Case: Command returning specific struct
+    // GET: yamaha_req!(ip, "/path", ReturnType)
     ($ip:expr, $path:expr, $ret:ty) => {
-        crate::execute_request::<$ret>($ip, &$path)
+        crate::execute_get::<$ret>($ip, &$path)
     };
-    // Case: Command returning void/nothing (Success checking only)
+    // GET (Void): yamaha_req!(ip, "/path")
     ($ip:expr, $path:expr) => {
-        crate::execute_request::<()>($ip, &$path)
+        crate::execute_get::<()>($ip, &$path)
     };
 }
+
+macro_rules! yamaha_post_req {
+    // POST: yamaha_req!(ip, "/path", body_struct, ReturnType)
+    ($ip:expr, $path:expr, $body:expr, $ret:ty) => {
+    crate::execute_post::<$ret, _>($ip, &$path, &$body)
+    };
+    // POST (Void): yamaha_req!(ip, "/path", body_struct)
+    ($ip:expr, $path:expr, $body:expr) => {
+    crate::execute_post::<(), _>($ip, &$path, &$body)
+    };
+}
+
 pub fn get_device_info(ip: &str) -> Result<DeviceInfo, Error> {
     yamaha_req!(ip, "/v1/system/getDeviceInfo", DeviceInfo)
 }
@@ -187,9 +217,61 @@ pub fn net_usb_set_shuffle(ip: &str, mode: Shuffle) -> Result<(), Error> {
 }
 
 pub fn net_usb_toggle_repeat(ip: &str) -> Result<(), Error> {
-    yamaha_req!(ip, "/v1/netusb/toggleRepeat".to_string())
+    yamaha_req!(ip, "/v1/netusb/toggleRepeat")
 }
 
 pub fn net_usb_toggle_shuffle(ip: &str) -> Result<(), Error> {
-    yamaha_req!(ip, "/v1/netusb/toggleShuffle".to_string())
+    yamaha_req!(ip, "/v1/netusb/toggleShuffle")
+}
+
+pub fn net_usb_set_search_string(
+    ip: &str,
+    list_id: &str,
+    search_text: &str,
+    index: Option<u32>
+) -> Result<(), Error> {
+    let req_body = SearchRequest {
+        list_id: list_id.to_string(),
+        string: search_text.to_string(),
+        index,
+    };
+
+    yamaha_post_req!(ip, "/v1/netusb/setSearchString", req_body)
+}
+
+pub fn net_usb_get_list_info(
+    ip: &str,
+    input: &str,
+    index: u32,
+    size: u32,
+    lang: &str
+) -> Result<ListInfo, Error> {
+    yamaha_req!(
+        ip,
+        format!("/v1/netusb/getListInfo?input={}&index={}&size={}&lang={}", input, index, size, lang),
+        ListInfo
+    )
+}
+
+pub fn net_usb_set_list_control(
+    ip: &str,
+    list_id: &str,
+    control_type: ListControl,
+    index: Option<u32>,
+    zone: Option<&str>
+) -> Result<(), Error> {
+    let mut url = format!(
+        "/v1/netusb/setListControl?list_id={}&type={}",
+        list_id, control_type
+    );
+
+    if let Some(idx) = index {
+        url.push_str(&format!("&index={}", idx));
+    }
+
+    if let Some(z) = zone {
+        url.push_str(&format!("&zone={}", z));
+    }
+
+    yamaha_req!(ip, url)
 }
