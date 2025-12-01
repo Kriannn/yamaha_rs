@@ -252,6 +252,7 @@ pub struct Zone {
     pub tone_control_mode_list: Option<Vec<String>>,
     pub link_control_list: Option<Vec<String>>,
     pub link_audio_delay_list: Option<Vec<String>>,
+    #[serde(default)]
     pub range_step: Vec<RangeStep>,
     pub scene_num: Option<i32>,
     pub cursor_list: Option<Vec<String>>,
@@ -392,4 +393,37 @@ pub struct NetUsbPlayInfo {
     pub auto_stopped: Option<bool>,
 
     pub attribute: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ListInfo {
+    pub input: String,
+    pub menu_layer: u32,
+    pub max_line: u32,
+    pub index: u32,
+    pub playing_index: i32, // -1 if nothing playing in current list
+    pub menu_name: String,
+    pub list_info: Vec<ListItem>,
+    pub response_code: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ListItem {
+    pub text: String,
+    pub thumbnail: Option<String>,
+    pub attribute: u32,
+    // attributes are bit flags:
+    // b[1]: Selectable (Folder/Container)
+    // b[2]: Playable
+    // b[3]: Searchable
+    #[serde(default)]
+    pub subtexts: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SearchRequest {
+    pub list_id: String, // Usually "main"
+    pub string: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub index: Option<u32>,
 }
