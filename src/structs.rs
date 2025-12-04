@@ -427,3 +427,10 @@ pub struct SearchRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub index: Option<u32>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct YpaoConfig {
+    ypao_volume: bool,
+    // No idea what this is, as this method is undocumented
+    disable_flags: i64,
+}

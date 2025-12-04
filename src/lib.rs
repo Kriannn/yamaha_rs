@@ -293,8 +293,33 @@ pub fn net_usb_set_list_control(
     yamaha_req!(ip, url)
 }
 
+pub fn set_volume(ip: &str, zone: &str, volume: i32) -> Result<(), Error> {
+    yamaha_req!(ip, format!("/v1/{}/setVolume?volume={}", zone, volume))
+}
+
+pub fn set_actual_volume(ip: &str, zone: &str, mode: &str, volume: i32) -> Result<(), Error> {
+    yamaha_req!(
+        ip,
+        format!(
+            "/v1/{}/setActualVolume?volume={}&mode={}",
+            zone, volume, mode
+        )
+    )
+}
+
+pub fn set_ypao_volume(ip: &str, enabled: bool) -> Result<(), Error> {
+    yamaha_req!(ip, format!("/v1/system/setYpaoVolume?enable={}", enabled))
+}
+
+pub fn get_ypao_config(ip: &str) -> Result<YpaoConfig, Error> {
+    yamaha_req!(ip, "/v1/system/getYpaoConfig", YpaoConfig)
+}
+
 pub fn set_subwoofer_volume(ip: &str, zone: &str, volume: i32) -> Result<(), Error> {
-    yamaha_req!(ip, format!("/v1/{}/setSubwooferVolume?volume={}", zone, volume))
+    yamaha_req!(
+        ip,
+        format!("/v1/{}/setSubwooferVolume?volume={}", zone, volume)
+    )
 }
 
 pub fn set_dialogue_lift(ip: &str, zone: &str, value: i32) -> Result<(), Error> {
@@ -306,13 +331,22 @@ pub fn set_dialogue_level(ip: &str, zone: &str, value: i32) -> Result<(), Error>
 }
 
 pub fn set_dts_dialogue_control(ip: &str, zone: &str, value: i32) -> Result<(), Error> {
-    yamaha_req!(ip, format!("/v1/{}/setDtsDialogueControl?value={}", zone, value))
+    yamaha_req!(
+        ip,
+        format!("/v1/{}/setDtsDialogueControl?value={}", zone, value)
+    )
 }
 
 pub fn set_tone_bass(ip: &str, zone: &str, bass: i32) -> Result<(), Error> {
-    yamaha_req!(ip, format!("/v1/{}/setToneControl?mode=manual&bass={}", zone, bass))
+    yamaha_req!(
+        ip,
+        format!("/v1/{}/setToneControl?mode=manual&bass={}", zone, bass)
+    )
 }
 
 pub fn set_tone_treble(ip: &str, zone: &str, treble: i32) -> Result<(), Error> {
-    yamaha_req!(ip, format!("/v1/{}/setToneControl?mode=manual&treble={}", zone, treble))
+    yamaha_req!(
+        ip,
+        format!("/v1/{}/setToneControl?mode=manual&treble={}", zone, treble)
+    )
 }

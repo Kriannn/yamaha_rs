@@ -1,6 +1,5 @@
 use crate::structs::YamahaDevice;
-use if_addrs::get_if_addrs;
-use log::{debug, error};
+use log::debug;
 use std::collections::HashSet;
 use std::io::{Read, Write};
 use std::net::{IpAddr, TcpStream, ToSocketAddrs, UdpSocket};
