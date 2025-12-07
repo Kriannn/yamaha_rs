@@ -350,3 +350,14 @@ pub fn set_tone_treble(ip: &str, zone: &str, treble: i32) -> Result<(), Error> {
         format!("/v1/{}/setToneControl?mode=manual&treble={}", zone, treble)
     )
 }
+
+pub fn net_usb_get_recent_info(ip: &str) -> Result<RecentInfo, Error> {
+    yamaha_req!(ip, "/v1/netusb/getRecentInfo", RecentInfo)
+}
+
+pub fn net_usb_set_play_position(ip: &str, position: u32) -> Result<(), Error> {
+    yamaha_req!(
+        ip,
+        format!("/v1/netusb/setPlayPosition?position={}", position)
+    )
+}

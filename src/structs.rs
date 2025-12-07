@@ -434,3 +434,17 @@ pub struct YpaoConfig {
     // No idea what this is, as this method is undocumented
     disable_flags: i64,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RecentInfo {
+    recent_info: Vec<RecentInfoEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RecentInfoEntry {
+    input: String,
+    text: String,
+    albumart_url: String,
+    play_count: i32,
+    attribute: u32,
+}
